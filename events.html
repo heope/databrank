@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事件记录 - 智库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --primary-color: #0d6efd;
+            --sidebar-bg: #ffffff;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                transform: translateX(-100%);
+                z-index: 1000;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+            }
+
+            .sidebar.open+.sidebar-overlay {
+                display: block;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cccccc;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #aaaaaa;
+        }
+
+        .truncate-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 3rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -0.5rem;
+            top: 0.25rem;
+            width: 1rem;
+            height: 1rem;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            border: 2px solid var(--bg-color);
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+
+<body class="overflow-x-hidden">
+    <div id="app" class="flex h-screen bg-gray-100">
+        <aside id="sidebar"
+            class="sidebar fixed md:static md:translate-x-0 top-0 left-0 h-full w-64 bg-white shadow-lg flex flex-col">
+            <div class="px-6 py-4 border-b">
+                <h1 class="text-xl font-bold">智库 - 事件记录</h1>
+            </div>
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="/handbook.html" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v11.494m-5.247-8.995l10.494 0M12 21.747a9.75 9.75 0 100-19.5 9.75 9.75 0 000 19.5z">
+                        </path>
+                    </svg>
+                    语c老师图鉴
+                </a>
+                <a href="/settings.html" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                    设定集
+                </a>
+                <a href="/events.html" class="px-4 py-2 text-white bg-blue-600 rounded-lg flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    事件记录
+                </a>
+                <hr class="my-4">
+                <h2 class="px-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">事件分类</h2>
+                <div id="events-categories" class="space-y-1"></div>
+            </nav>
+        </aside>
+        <div id="sidebar-overlay" class="sidebar-overlay fixed inset-0 bg-black opacity-50 z-50 hidden md:hidden"
+            onclick="toggleSidebar()"></div>
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white shadow-sm flex items-center justify-between p-4 md:justify-end">
+                <button id="sidebar-toggle"
+                    class="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                    onclick="toggleSidebar()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div class="text-lg font-semibold text-gray-800" id="main-content-title">所有事件</div>
+            </header>
+            <div id="events-timeline" class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto"></div>
+        </main>
+    </div>
+    <script>
+        const categoriesContainer = document.getElementById('events-categories');
+        const timelineContainer = document.getElementById('events-timeline');
+        const contentTitle = document.getElementById('main-content-title');
+        const sidebar = document.getElementById('sidebar');
+        let allEvents = [];
+
+        async function loadData() {
+            try {
+                const response = await fetch('/db.json');
+                if (!response.ok) throw new Error('数据库错误，请联系丹恒老师。');
+                const fullData = await response.json();
+                const eventsData = fullData.events || { items: [], categories: [] };
+                allEvents = eventsData.items;
+                renderCategories(eventsData.categories);
+                renderEvents(allEvents);
+            } catch (error) {
+                timelineContainer.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            }
+        }
+
+        function renderCategories(categories) {
+            categoriesContainer.innerHTML = `<a href="#" class="block px-4 py-2 text-white bg-blue-500 rounded-md truncate-text category-link" data-category-id="all">全部事件</a>`;
+            categories.forEach(cat => {
+                categoriesContainer.innerHTML += `<a href="#" class="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md truncate-text category-link" data-category-id="${cat.id}">${cat.name}</a>`;
+            });
+            document.querySelectorAll('.category-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const categoryId = e.target.dataset.categoryId;
+                    document.querySelectorAll('.category-link').forEach(l => l.classList.remove('bg-blue-500', 'text-white'));
+                    e.target.classList.add('bg-blue-500', 'text-white');
+                    filterAndRenderEvents(categoryId);
+                    contentTitle.textContent = e.target.textContent;
+                    if (window.innerWidth < 768) toggleSidebar();
+                });
+            });
+        }
+
+        function filterAndRenderEvents(categoryId) {
+            if (categoryId === 'all') renderEvents(allEvents);
+            else renderEvents(allEvents.filter(event => event.categoryId === categoryId));
+        }
+
+        function renderEvents(events) {
+            if (events.length === 0) {
+                timelineContainer.innerHTML = `<p class="text-gray-500 text-center mt-8">该分类下暂无事件记录。</p>`;
+                return;
+            }
+            timelineContainer.innerHTML = `<div class="timeline">${events.map(event => `
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <time class="mb-1 text-sm font-normal leading-none text-gray-500">${event.time}</time>
+                <h3 class="text-lg font-semibold text-gray-900">${event.title}</h3>
+                <p class="mb-4 text-base font-normal text-gray-600">${event.description}</p>
+            </div>`).join('')}</div>`;
+        }
+
+        function toggleSidebar() { sidebar.classList.toggle('open'); }
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智库管理工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .form-input {
+            @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow;
+        }
+
+        .form-textarea {
+            @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow min-h-[120px];
+        }
+
+        .btn {
+            @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-200;
+        }
+
+        .btn-primary {
+            @apply bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm hover:shadow-md;
+        }
+
+        .btn-success {
+            @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md;
+        }
+
+        .btn-danger {
+            @apply bg-red-600 text-white hover:bg-red-700;
+        }
+
+        .btn-danger-outline {
+            @apply bg-white text-red-600 border border-red-300 hover:bg-red-50;
+        }
+
+        .btn-secondary {
+            @apply bg-slate-200 text-slate-800 hover:bg-slate-300;
+        }
+
+        .tab-button {
+            @apply px-4 py-3 text-base font-medium text-gray-500 border-b-2 border-transparent hover:text-indigo-600 hover:border-indigo-300;
+        }
+
+        .tab-button.active {
+            @apply text-indigo-600 border-indigo-500;
+        }
+
+        .card {
+            @apply bg-white p-6 rounded-xl border border-gray-200 shadow-sm;
+        }
+
+        .item-card {
+            @apply bg-white p-4 rounded-lg border border-gray-200/80 transition-shadow hover:shadow-lg;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100">
+
+    <div id="admin-app" class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">智库管理工具</h1>
+                    <p class="text-slate-500 mt-1">在本地修改内容，然后下载 db.json 文件用于部署。</p>
+                </div>
+                <div class="flex gap-3 mt-4 sm:mt-0">
+                    <label for="file-loader" class="btn btn-secondary cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        加载 db.json
+                    </label>
+                    <input type="file" id="file-loader" class="hidden" accept=".json">
+                    <button id="download-button" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        下载 db.json
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab -->
+        <div class="mb-6">
+            <nav class="flex space-x-2 sm:space-x-4 border-b border-gray-200" id="tabs">
+                <button data-tab="handbook" class="tab-button active">语c老师图鉴管理</button>
+                <button data-tab="settings" class="tab-button">设定集管理</button>
+                <button data-tab="events" class="tab-button">事件记录管理</button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <div id="handbook-manager" class="space-y-8"></div>
+            <div id="settings-manager" class="hidden space-y-8"></div>
+            <div id="events-manager" class="hidden space-y-8"></div>
+        </div>
+    </div>
+
+    <script>
+        let fullData = {};
+
+        function getDefaultData() {
+            return {
+                handbook: {
+                    categories: [{ id: 'cat-1', name: '默认阵营' }],
+                    characters: [{ id: 'char-1', categoryId: 'cat-1', name: '默认角色', avatar: 'https://placehold.co/100x100/a78bfa/ffffff?text=Char', description: '这是默认描述。' }]
+                },
+                settings: {
+                    categories: [{ id: 'set-cat-1', name: '默认主设定', subCategories: [{ id: 'sub-1-1', name: '默认子设定', content: '这是设定的默认内容。' }] }]
+                },
+                events: {
+                    categories: [{ id: 'evt-cat-1', name: '默认事件' }],
+                    items: [{ id: 'evt-1', categoryId: 'evt-cat-1', time: '时间', title: '默认事件', description: '这是事件的默认描述。' }]
+                }
+            };
+        }
+
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+        // --- Tab切换逻辑 ---
+        const tabs = document.getElementById('tabs');
+        const tabContent = document.getElementById('tab-content');
+        tabs.addEventListener('click', (e) => {
+            if (e.target.matches('.tab-button')) {
+                const tabName = e.target.dataset.tab;
+                tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                tabContent.querySelectorAll(':scope > div').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`${tabName}-manager`).classList.remove('hidden');
+            }
+        });
+
+        function rerenderAll() {
+            renderHandbookManager();
+            renderSettingsManager();
+            renderEventsManager();
+        }
+
+        function renderHandbookManager() {
+            const container = document.getElementById('handbook-manager');
+            const { categories, characters } = fullData.handbook;
+            container.innerHTML = `
+        <div class="card">
+            <h2 class="text-2xl font-bold text-slate-700 mb-4">分类</h2>
+            <div id="handbook-categories-list" class="space-y-3 mb-4">
+            ${categories.map((cat, index) => `
+                <div class="flex items-center gap-3">
+                    <input type="text" value="${cat.name}" class="form-input" data-type="handbook-category" data-index="${index}" data-field="name" placeholder="分类名称">
+                    <button class="btn btn-danger-outline p-2 h-10 w-10 flex-shrink-0" onclick="deleteItem('handbook-category', ${index})"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                </div>`).join('')}
+            </div>
+            <button class="btn btn-primary" onclick="addItem('handbook-category')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                添加分类
+            </button>
+        </div>
+        <div class="card">
+            <h2 class="text-2xl font-bold text-slate-700 mb-4">老师列表</h2>
+            <div id="handbook-characters-list" class="space-y-6">
+            ${characters.map((char, index) => `
+                <div class="item-card">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-600 mb-1">角色名称</label><input type="text" value="${char.name}" class="form-input" data-type="handbook-character" data-index="${index}" data-field="name"></div>
+                        <div><label class="block text-sm font-medium text-gray-600 mb-1">所属阵营</label><select class="form-input" data-type="handbook-character" data-index="${index}" data-field="categoryId">${categories.map(cat => `<option value="${cat.id}" ${char.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')}</select></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-600 mb-1">头像 URL</label><input type="text" value="${char.avatar}" class="form-input" data-type="handbook-character" data-index="${index}" data-field="avatar"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-600 mb-1">详细介绍</label><textarea class="form-textarea" data-type="handbook-character" data-index="${index}" data-field="description">${char.description}</textarea></div>
+                    </div><div class="text-right mt-4"><button class="btn btn-danger-outline" onclick="deleteItem('handbook-character', ${index})">删除此角色</button></div>
+                </div>`).join('') || `<p class="text-slate-500 text-center py-4">暂无角色，请先添加一个。</p>`}
+            </div>
+            <button class="btn btn-primary mt-6" onclick="addItem('handbook-character')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                添加新角色
+            </button>
+        </div>`;
+        }
+
+        function renderSettingsManager() {
+            const container = document.getElementById('settings-manager');
+            const { categories } = fullData.settings;
+            container.innerHTML = `
+        <div id="settings-categories-list" class="space-y-6">
+        ${categories.map((cat, catIndex) => `
+            <div class="card">
+                <div class="flex items-center gap-3 mb-4"><input type="text" value="${cat.name}" class="form-input text-lg font-semibold" placeholder="主分类名称" data-type="setting-category" data-index="${catIndex}" data-field="name"><button class="btn btn-danger-outline p-2 h-11 w-11 flex-shrink-0" onclick="deleteItem('setting-category', ${catIndex})"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>
+                <div class="pl-4 border-l-2 border-slate-200 space-y-4">
+                    ${cat.subCategories.map((sub, subIndex) => `
+                    <div class="item-card bg-slate-50/50 p-4"><label class="block text-sm font-medium text-gray-600 mb-1">子分类名称</label><input type="text" value="${sub.name}" class="form-input mb-2" placeholder="子分类名称" data-type="setting-subcategory" data-cat-index="${catIndex}" data-sub-index="${subIndex}" data-field="name"><label class="block text-sm font-medium text-gray-600 mb-1">内容</label><textarea class="form-textarea" placeholder="子分类内容" data-type="setting-subcategory" data-cat-index="${catIndex}" data-sub-index="${subIndex}" data-field="content">${sub.content}</textarea><div class="text-right mt-3"><button class="btn btn-danger-outline text-xs py-1 px-2" onclick="deleteItem('setting-subcategory', ${catIndex}, ${subIndex})">删除子分类</button></div></div>`).join('') || `<p class="text-slate-500 py-4">暂无子分类。</p>`}
+                    <button class="btn btn-primary" onclick="addItem('setting-subcategory', ${catIndex})"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>添加子分类</button>
+                </div></div>`).join('') || `<p class="text-slate-500 text-center py-4">暂无主分类，请先添加一个。</p>`}
+        </div><button class="btn btn-primary mt-6" onclick="addItem('setting-category')"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>添加主分类</button>`;
+        }
+
+        function renderEventsManager() {
+            const container = document.getElementById('events-manager');
+            const { categories, items } = fullData.events;
+            container.innerHTML = `
+        <div class="card">
+            <h2 class="text-2xl font-bold text-slate-700 mb-4">事件分类</h2><div id="events-categories-list" class="space-y-3 mb-4">
+            ${categories.map((cat, index) => `<div class="flex items-center gap-3"><input type="text" value="${cat.name}" class="form-input" data-type="event-category" data-index="${index}" data-field="name"><button class="btn btn-danger-outline p-2 h-10 w-10 flex-shrink-0" onclick="deleteItem('event-category', ${index})"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button></div>`).join('')}
+            </div><button class="btn btn-primary" onclick="addItem('event-category')"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>添加分类</button>
+        </div>
+        <div class="card">
+            <h2 class="text-2xl font-bold text-slate-700 mb-4">事件列表</h2><div id="events-items-list" class="space-y-6">
+            ${items.map((item, index) => `
+                <div class="item-card">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-600 mb-1">事件标题</label><input type="text" value="${item.title}" class="form-input" data-type="event-item" data-index="${index}" data-field="title"></div>
+                        <div><label class="block text-sm font-medium text-gray-600 mb-1">所属分类</label><select class="form-input" data-type="event-item" data-index="${index}" data-field="categoryId">${categories.map(cat => `<option value="${cat.id}" ${item.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')}</select></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-600 mb-1">时间</label><input type="text" value="${item.time}" class="form-input" data-type="event-item" data-index="${index}" data-field="time"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-600 mb-1">事件描述</label><textarea class="form-textarea" data-type="event-item" data-index="${index}" data-field="description">${item.description}</textarea></div>
+                    </div><div class="text-right mt-4"><button class="btn btn-danger-outline" onclick="deleteItem('event-item', ${index})">删除此事件</button></div>
+                </div>`).join('') || `<p class="text-slate-500 text-center py-4">暂无事件，请先添加一个。</p>`}
+            </div><button class="btn btn-primary mt-6" onclick="addItem('event-item')"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>添加新事件</button>
+        </div>`;
+        }
+
+        function updateLocalData(e) {
+            if (!e.target.matches('[data-type]')) return;
+            const { type, index, catIndex, subIndex, field } = e.target.dataset;
+            const value = e.target.value;
+            switch (type) {
+                case 'handbook-category': fullData.handbook.categories[index][field] = value; break;
+                case 'handbook-character': fullData.handbook.characters[index][field] = value; break;
+                case 'setting-category': fullData.settings.categories[index][field] = value; break;
+                case 'setting-subcategory': fullData.settings.categories[catIndex].subCategories[subIndex][field] = value; break;
+                case 'event-category': fullData.events.categories[index][field] = value; break;
+                case 'event-item': fullData.events.items[index][field] = value; break;
+            }
+        }
+
+        function addItem(type, catIndex) {
+            switch (type) {
+                case 'handbook-category': fullData.handbook.categories.push({ id: generateId(), name: '新分类' }); break;
+                case 'handbook-character': fullData.handbook.characters.push({ id: generateId(), categoryId: fullData.handbook.categories[0]?.id || '', name: '新角色', avatar: '', description: '' }); break;
+                case 'setting-category': fullData.settings.categories.push({ id: generateId(), name: '新主分类', subCategories: [] }); break;
+                case 'setting-subcategory': fullData.settings.categories[catIndex].subCategories.push({ id: generateId(), name: '新子分类', content: '' }); break;
+                case 'event-category': fullData.events.categories.push({ id: generateId(), name: '新分类' }); break;
+                case 'event-item': fullData.events.items.push({ id: generateId(), categoryId: fullData.events.categories[0]?.id || '', time: '新纪元', title: '新事件', description: '' }); break;
+            }
+            rerenderAll();
+        }
+
+        function deleteItem(type, index1, index2) {
+            if (!confirm('确定要删除吗？此操作不可撤销。')) return;
+            switch (type) {
+                case 'handbook-category': fullData.handbook.categories.splice(index1, 1); break;
+                case 'handbook-character': fullData.handbook.characters.splice(index1, 1); break;
+                case 'setting-category': fullData.settings.categories.splice(index1, 1); break;
+                case 'setting-subcategory': fullData.settings.categories[index1].subCategories.splice(index2, 1); break;
+                case 'event-category': fullData.events.categories.splice(index1, 1); break;
+                case 'event-item': fullData.events.items.splice(index1, 1); break;
+            }
+            rerenderAll();
+        }
+
+        const fileLoader = document.getElementById('file-loader');
+        const downloadButton = document.getElementById('download-button');
+        fileLoader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    fullData = JSON.parse(e.target.result);
+                    rerenderAll();
+                    alert('db.json 文件加载成功！');
+                } catch (error) { alert('文件格式错误，请确保是有效的JSON文件。'); }
+            };
+            reader.readAsText(file);
+        });
+        downloadButton.addEventListener('click', () => {
+            const dataStr = JSON.stringify(fullData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'db.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('db.json 已开始下载！');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fullData = getDefaultData();
+            rerenderAll();
+            document.getElementById('tab-content').addEventListener('input', updateLocalData);
+        });
+    </script>
+</body>
+
+</html>
